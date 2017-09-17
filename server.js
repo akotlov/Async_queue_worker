@@ -3,6 +3,7 @@ const async = require("async");
 const request = require("request");
 const urlExists = require("url-exists");
 const shortid = require("shortid");
+const is = require("is_js");
 
 const cluster = require("cluster");
 //const numCPUs = require("os").cpus().length;
@@ -72,9 +73,10 @@ if (cluster.isMaster && numCPUs > 1) {
     cluster.fork();
   }
   cluster.on("exit", (worker, code, signal) => {
-    console.log(`worker ${worker.process.pid} died`);
-    // Replace the dead worker,
-    cluster.fork();
+    if (code !== 0 && !worker.exitedAfterDisconnect) {
+      console.log(`Worker ${worker.id} crashed. ` + "Starting a new worker...");
+      cluster.fork();
+    }
   });
 
   cluster.on("online", worker => {
@@ -91,6 +93,7 @@ const toHTML = require("himalaya/translate").toHTML;
 const htmlparser = require("htmlparser2");
 const cheerio = require("cheerio");
 const Job = require("./models/Job");
+const uniqueLinks = [];
 
 const htmlParseQueue = new Queue("html_parsing", "redis://127.0.0.1:6379");
 const resultQueue = new Queue("Result Queue");
@@ -165,6 +168,8 @@ function bytesToSize(bytes) {
   return `${(bytes / 1024 ** i).toFixed(1)} ${sizes[i]}`;
 }
 
+let allLinks = [];
+
 function process(job, done) {
   const maxSize = 1048576;
   console.log("Url content size limit set to: ", bytesToSize(maxSize));
@@ -226,6 +231,7 @@ function process(job, done) {
           done(new Error(e));
         }*/
           $ = cheerio.load(body);
+
           let links = $("a"); //jquery get all hyperlinks
           $(links).each(function(i, link) {
             //console.log($(link).text() + ":\n  " + $(link).attr("href"));
@@ -284,6 +290,42 @@ function process(job, done) {
     }
   );
 }
+
+/**
+ * Returns a random integer between min (inclusive) and max (inclusive)
+ * Using Math.round() will give you a non-uniform distribution!
+ */
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function arrayTest() {
+  let data = new Array(3276); //768);
+  let dataSize = data.length;
+
+  for (let c = 0; c < dataSize; c++) data[c] = getRandomInt(0, 256);
+
+  data.sort(function(a, b) {
+    return a - b;
+  });
+
+  let start = new Date();
+  let sum = 0;
+
+  for (let i = 0; i < 100000; i++) {
+    // Primary loop
+    for (let c = 0; c < dataSize; c++) {
+      if (data[c] <= 128) {
+        sum += data[c];
+      }
+    }
+  }
+  let end = new Date();
+  console.log("Operation took " + (end.getTime() - start.getTime()) + " msec");
+  console.log(sum);
+}
+
+arrayTest();
 
 //console.log(`Worker ${process.pid} started`);
 /*
