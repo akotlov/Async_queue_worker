@@ -11,12 +11,16 @@ const numCPUs = 1;
 
 const winston = require("winston");
 const logger = new winston.Logger({
+  level: "info",
   transports: [
-    // colorize the output to the console
-    new winston.transports.Console({ colorize: true })
+    // colorize the output to the   console
+    new winston.transports.Console({ colorize: true }),
+    new winston.transports.File({ filename: "logfile.log" })
   ]
 });
-logger.level = "debug";
+//logger.remove(winston.transports.Console);
+
+//logger.level = "debug";
 
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -51,10 +55,10 @@ function errorHandler(err, req, res, next) {
   res.render("error", { error: err });
 }
 
-//console.log(process.env);
+//logger.log("info" ,process.env);
 
 /*process.on("uncaughtException", err => {
-  console.error(`Uncaught exception: ${err.stack}`);
+   logger.log("info", `Uncaught exception: ${err.stack}`);
   process.exit(1);
 });*/
 
@@ -63,24 +67,27 @@ potentially hide an issue, you can use the unhandledRejection hook. It will prin
 nhandled Promise rejections.
 
 process.on('unhandledRejection', (err) => {  
-  console.log(err)
+   logger.log("info", err)
 })
 */
 
 if (cluster.isMaster && numCPUs > 1) {
-  console.log(`Master ${process.pid} is running`);
+  logger.log("info", `Master ${process.pid} is running`);
   for (let i = 0; i < numCPUs; i++) {
     cluster.fork();
   }
   cluster.on("exit", (worker, code, signal) => {
     if (code !== 0 && !worker.exitedAfterDisconnect) {
-      console.log(`Worker ${worker.id} crashed. ` + "Starting a new worker...");
+      logger.log(
+        "info",
+        `Worker ${worker.id} crashed. ` + "Starting a new worker..."
+      );
       cluster.fork();
     }
   });
 
   cluster.on("online", worker => {
-    console.log(`Worker ${worker.process.pid} is online`);
+    logger.log("info", `Worker ${worker.process.pid} is online`);
   });
 } else {
   require("./api/mongo")(app);
@@ -99,17 +106,17 @@ const htmlParseQueue = new Queue("html_parsing", "redis://127.0.0.1:6379");
 const resultQueue = new Queue("Result Queue");
 
 htmlParseQueue.on("completed", (job, result) => {
-  console.log("completed job: ", job.id, result);
+  logger.log("info", "completed job: ", job.id, result);
   resultQueue.add({ status: "completed", job: job, result: result });
 });
 
 htmlParseQueue.on("failed", (job, error) => {
-  console.log("failed job ", job, error);
+  logger.log("info", "failed job ", job, error);
   resultQueue.add({ status: "failed", job: job, error: error });
 });
 
 htmlParseQueue.process((job, done) => {
-  console.log("Job processing : ", job.id);
+  logger.log("info", "Job processing : ", job.id);
   process(job, done);
 });
 
@@ -132,7 +139,7 @@ function parseHtml(data) {
   const tagsWithCount = [];
 
   const handler = new htmlparser.DomHandler((error, dom) => {
-    console.log(dom);
+    logger.log("info", dom);
   });
 
   const parsedData = new htmlparser.Parser(
@@ -156,7 +163,7 @@ function parseHtml(data) {
 
   parsedData.write(data);
   parsedData.end();
-  // console.log(tagsWithCount);
+  //   logger.log("info",tagsWithCount);
   return tagsWithCount;
 }
 
@@ -172,7 +179,7 @@ let allLinks = [];
 
 function process(job, done) {
   const maxSize = 1048576;
-  console.log("Url content size limit set to: ", bytesToSize(maxSize));
+  logger.log("info", "Url content size limit set to : ", bytesToSize(maxSize));
 
   async.waterfall(
     [
@@ -186,7 +193,7 @@ function process(job, done) {
           (err, headRes) => {
             const size = headRes.headers["content-length"];
             if (size > maxSize) {
-              console.log(`Resource size exceeds limit (${size})`);
+              logger.log("info", `Resource size exceeds limit (${size})`);
               //done(new Error("Resource stream exceeded limit"));
               callback(new Error("Resource stream exceeded limit"));
             } else {
@@ -206,7 +213,7 @@ function process(job, done) {
           dataSize += data.length;
 
           if (dataSize > maxSize) {
-            console.log(`Resource stream exceeded limit (${dataSize})`);
+            logger.log("info", `Resource stream exceeded limit (${dataSize})`);
             callback(new Error("Resource stream exceeded limit"));
             res.abort(); // Abort the response (close and cleanup the stream)
           }
@@ -215,7 +222,7 @@ function process(job, done) {
         res.on("end", () => {
           // const l = (body.length / 1024).toFixed(3);
           const l = bytesToSize(body.length);
-          console.log("Resource lenght is", l);
+          logger.log("info", "Resource lenght is", l);
           //let parsedBody;
           let jobResult = {
             url: url,
@@ -225,7 +232,7 @@ function process(job, done) {
           let foundLinks = [];
           /*try {
           parsedBody = parseHtml(body);
-          console.log("htmlParseQueue parsedBody :", parsedBody);
+           logger.log("info","htmlParseQueue parsedBody :", parsedBody);
           return done(null, parsedBody);
         } catch (e) {
           done(new Error(e));
@@ -234,11 +241,11 @@ function process(job, done) {
 
           let links = $("a"); //jquery get all hyperlinks
           $(links).each(function(i, link) {
-            //console.log($(link).text() + ":\n  " + $(link).attr("href"));
-            //console.log($(link).attr("href"));
+            //logger.log("info",$(link).text() + ":\n  " + $(link).attr("href"));
+            //logger.log("info",$(link).attr("href"));
             foundLinks.push($(link).attr("href"));
           });
-          console.log(foundLinks.length);
+          logger.log("info", foundLinks.length);
 
           /*function isValidUrl(url, cb) {
             urlExists(url, (err, exists) => {
@@ -253,21 +260,21 @@ function process(job, done) {
             let validLinks = [];
 
             for (let i = 0; i < arr.length; i++) {
-              console.log("outer i ", i);
+               logger.log("info","outer i ", i);
               isValidUrl(arr[i], (err, result) => {
-                console.log("inner i ", i);
+                 logger.log("info","inner i ", i);
                 if (result === false) return;
                 validLinks.push(result);
-                console.log("validLinks inside for loop ", validLinks);
+                 logger.log("info","validLinks inside for loop ", validLinks);
                 //if (i === arr.length) cb(null, validLinks);
               });
             }
           }
 
           validate(foundLinks, (err, resultArr) => {
-            console.log("valida callback result ", resultArr);
+             logger.log("info","valida callback result ", resultArr);
             jobResult.links = resultArr;
-            console.log(jobResult);
+             logger.log("info",jobResult);
             callback(null, jobResult);
           });*/
 
@@ -286,7 +293,7 @@ function process(job, done) {
     (err, jobResult) => {
       if (err) done(err);
       done(null, jobResult);
-      //console.log("Final create_job_async callback return status: ", result);
+      //logger.log("info","Final create_job_async callback return status: ", result);
     }
   );
 }
@@ -321,20 +328,23 @@ function arrayTest() {
     }
   }
   let end = new Date();
-  console.log("Operation took " + (end.getTime() - start.getTime()) + " msec");
-  console.log(sum);
+  logger.log(
+    "info",
+    "Operation took " + (end.getTime() - start.getTime()) + " msec"
+  );
+  logger.log("info", sum);
 }
 
-arrayTest();
+//arrayTest();
 
-//console.log(`Worker ${process.pid} started`);
+//logger.log(`Worker ${process.pid} started`);
 /*
 TODO:
 -check if database is available before we init our app
 -when using cluster module check what code should run inside child processes ,
 for example DB connections? Answer- will have one db connection per process.
 -what if master process crashes first?What would happen to its slave processes?
--remove console.log statements,use debug
+-remove   logger.log statements,use debug
  -check if headers has 'x-frame-options': 'SAMEORIGIN' -
 it will prevent browser from displaying HTML in iframe.
 
@@ -343,7 +353,7 @@ it will prevent browser from displaying HTML in iframe.
 // var options = {method: 'HEAD', host: url.parse(job_url).host, /*port: 80, path: '/'*/};
 
 /* var isValidUrlRequest = adapterFor(job_url).request(options, function(r) {
-            console.log(JSON.stringify(r.statusCode));
+             logger.log(JSON.stringify(r.statusCode));
             callback(null, r.statusCode);
         });
       isValidUrlRequest.end(); 
