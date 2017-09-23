@@ -175,7 +175,7 @@ function bytesToSize(bytes) {
   return `${(bytes / 1024 ** i).toFixed(1)} ${sizes[i]}`;
 }
 
-let allLinks = [];
+let allUniqueLinks = [];
 
 function process(job, done) {
   const maxSize = 1048576;
@@ -204,16 +204,19 @@ function process(job, done) {
       },
       // Task 2
       (url, callback) => {
-        let dataSize = 0;
+        let contentSize = 0;
         let body = "";
 
         const res = request({ url: url });
 
         res.on("data", data => {
-          dataSize += data.length;
+          contentSize += data.length;
 
-          if (dataSize > maxSize) {
-            logger.log("info", `Resource stream exceeded limit (${dataSize})`);
+          if (contentSize > maxSize) {
+            logger.log(
+              "info",
+              `Resource stream exceeded limit (${contentSize})`
+            );
             callback(new Error("Resource stream exceeded limit"));
             res.abort(); // Abort the response (close and cleanup the stream)
           }
@@ -227,7 +230,8 @@ function process(job, done) {
           let jobResult = {
             url: url,
             dataLength: l,
-            links: []
+            validLinks: null,
+            links: null
           };
           let foundLinks = [];
           /*try {
@@ -245,42 +249,14 @@ function process(job, done) {
             //logger.log("info",$(link).attr("href"));
             foundLinks.push($(link).attr("href"));
           });
-          logger.log("info", foundLinks.length);
-
-          /*function isValidUrl(url, cb) {
-            urlExists(url, (err, exists) => {
-              if (exists) {
-                cb(null, url);
-              }
-              cb(null, false);
-            });
-          }*/
-
-          /*function validate(arr, cb) {
-            let validLinks = [];
-
-            for (let i = 0; i < arr.length; i++) {
-               logger.log("info","outer i ", i);
-              isValidUrl(arr[i], (err, result) => {
-                 logger.log("info","inner i ", i);
-                if (result === false) return;
-                validLinks.push(result);
-                 logger.log("info","validLinks inside for loop ", validLinks);
-                //if (i === arr.length) cb(null, validLinks);
-              });
-            }
-          }
-
-          validate(foundLinks, (err, resultArr) => {
-             logger.log("info","valida callback result ", resultArr);
-            jobResult.links = resultArr;
-             logger.log("info",jobResult);
-            callback(null, jobResult);
-          });*/
+          logger.log("info", "foundLinks", foundLinks.length);
 
           async.filter(foundLinks, urlExists, function(err, validLinks) {
-            jobResult.links = validLinks;
-            callback(null, jobResult);
+            // TODO handle no valid links case
+            jobResult.validLinks = validLinks.map(x => x);
+            logger.log("info", "validLinks ", jobResult.validLinks.length);
+            if (!err) return callback(null, jobResult);
+            done(new Error(err));
           });
         });
 
@@ -288,6 +264,24 @@ function process(job, done) {
           done(new Error(error));
         });
         res.end();
+      },
+      // Task 3
+      (jobResult, callback) => {
+        let validLinks = jobResult.validLinks;
+        if (allUniqueLinks.length === 0)
+          allUniqueLinks = validLinks.map(x => x);
+        let dataSize = allUniqueLinks.length;
+        let dataSize1 = validLinks.length;
+        for (let i = 0; i < dataSize; i++) {
+          for (let j = 0; j < dataSize1; j++) {
+            if (validLinks.length === 0) return callback(null, jobResult);
+            if (allUniqueLinks[i] === validLinks[j])
+              validLinks.splice(validLinks[j], 1);
+          }
+        }
+        logger.log("info", "valid links after for loop", validLinks.length);
+        jobResult.links = validLinks.map(x => x);
+        callback(null, jobResult);
       }
     ],
     (err, jobResult) => {
@@ -307,7 +301,7 @@ function getRandomInt(min, max) {
 }
 
 function arrayTest() {
-  let data = new Array(3276); //768);
+  let data = new Array(32776); //768);
   let dataSize = data.length;
 
   for (let c = 0; c < dataSize; c++) data[c] = getRandomInt(0, 256);
@@ -337,6 +331,70 @@ function arrayTest() {
 
 //arrayTest();
 
+var text = [
+  "The",
+  "quick",
+  "brown",
+  "fox",
+  "jumped",
+  "over",
+  "the",
+  "lazy",
+  "dog",
+  "at",
+  "a",
+  "restaurant",
+  "near",
+  "the",
+  "lake",
+  "of",
+  "a",
+  "new",
+  "era"
+];
+
+function hashThing() {
+  let map = {};
+  times = 100; //0001;
+
+  while (--times)
+    for (var k = 0; k < text.length; ++k) {
+      // Unlike luajit, if we put if (map[text[k]]) map[text[k]] += 1
+      // in v8, this program will become 6 times slower. Instead we create a new object with a counter
+      // and this way we'll only need to access the hashtable once per loop.
+      var kth = map[text[k]];
+      if (kth) kth.c += 1;
+      else map[text[k]] = { c: 1 };
+    }
+
+  for (var key in map) {
+    console.log(key, map[key].c);
+  }
+}
+
+function Test(text) {
+  this.text = text;
+  this.uniqueText = [];
+}
+
+Test.prototype.runTest = function() {
+  if (this.uniqueText.length === 0) this.uniqueText = this.text.map(x => x);
+  let dataSize = this.uniqueText.length;
+  let dataSize1 = this.text.length;
+  for (let i = 0; i < dataSize; i++) {
+    for (let j = 0; j < dataSize1; j++) {
+      if (this.text.length === 0) return;
+      if (this.uniqueText[i] === this.text[j])
+        this.text.splice(this.text[j], 1);
+    }
+  }
+  return uniqueText;
+};
+let test = new Test(text);
+//test.runTest();
+//logger.log("info", test.uniqueText);
+
+//hashThing();
 //logger.log(`Worker ${process.pid} started`);
 /*
 TODO:
