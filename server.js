@@ -268,15 +268,17 @@ function process(job, done) {
       // Task 3
       (jobResult, callback) => {
         let validLinks = jobResult.validLinks;
-        if (allUniqueLinks.length === 0)
+        if (allUniqueLinks.length === 0) {
           allUniqueLinks = validLinks.map(x => x);
-        let dataSize = allUniqueLinks.length;
-        let dataSize1 = validLinks.length;
-        for (let i = 0; i < dataSize; i++) {
-          for (let j = 0; j < dataSize1; j++) {
-            if (validLinks.length === 0) return callback(null, jobResult);
-            if (allUniqueLinks[i] === validLinks[j])
-              validLinks.splice(validLinks[j], 1);
+        } else {
+          let dataSize = allUniqueLinks.length;
+          let dataSize1 = validLinks.length;
+          for (let i = 0; i < dataSize; i++) {
+            for (let j = 0; j < dataSize1; j++) {
+              if (validLinks.length === 0) return callback(null, jobResult);
+              if (allUniqueLinks[i] === validLinks[j])
+                validLinks.splice(validLinks[j], 1);
+            }
           }
         }
         logger.log("info", "valid links after for loop", validLinks.length);

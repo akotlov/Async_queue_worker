@@ -396,3 +396,29 @@
 {"level":"info","message":"validLinks  13","timestamp":"2017-09-23T04:27:23.247Z"}
 {"level":"info","message":"valid links after for loop 13","timestamp":"2017-09-23T04:27:23.247Z"}
 {"url":"https://github.com/traceglMPL/tracegl","dataLength":"56.5 KB","validLinks":["https://github.com/","https://help.github.com/articles/which-remote-url-should-i-use","https://github.com/site/terms","https://github.com/site/privacy","https://github.com/security","https://status.github.com/","https://help.github.com","https://github.com","https://github.com/contact","https://developer.github.com","https://training.github.com","https://github.com/blog","https://github.com/about"],"links":["https://github.com/","https://help.github.com/articles/which-remote-url-should-i-use","https://github.com/site/terms","https://github.com/site/privacy","https://github.com/security","https://status.github.com/","https://help.github.com","https://github.com","https://github.com/contact","https://developer.github.com","https://training.github.com","https://github.com/blog","https://github.com/about"],"level":"info","message":"completed job:  HJg3zv7sb","timestamp":"2017-09-23T04:27:23.248Z"}
+{"level":"info","message":"Job processing :  r1QdVvXiW","timestamp":"2017-09-23T04:34:51.260Z"}
+{"level":"info","message":"Url content size limit set to :  1.0 MB","timestamp":"2017-09-23T04:34:51.262Z"}
+{"level":"info","message":"Resource lenght is 56.5 KB","timestamp":"2017-09-23T04:34:54.685Z"}
+{"level":"info","message":"foundLinks 79","timestamp":"2017-09-23T04:34:54.814Z"}
+{"level":"info","message":"validLinks  13","timestamp":"2017-09-23T04:34:56.328Z"}
+{"level":"info","message":"Job processing :  rJp16Oms-","timestamp":"2017-09-23T06:19:21.777Z"}
+{"level":"info","message":"Url content size limit set to :  1.0 MB","timestamp":"2017-09-23T06:19:21.779Z"}
+{"level":"info","message":"Resource lenght is 56.5 KB","timestamp":"2017-09-23T06:19:25.777Z"}
+{"level":"info","message":"foundLinks 79","timestamp":"2017-09-23T06:19:25.869Z"}
+{"level":"info","message":"validLinks  13","timestamp":"2017-09-23T06:19:28.673Z"}
+{"level":"info","message":"valid links after for loop 13","timestamp":"2017-09-23T06:19:28.674Z"}
+{"url":"https://github.com/traceglMPL/tracegl","dataLength":"56.5 KB","validLinks":["https://github.com/","https://help.github.com/articles/which-remote-url-should-i-use","https://github.com/site/terms","https://github.com/site/privacy","https://github.com/security","https://status.github.com/","https://help.github.com","https://github.com","https://github.com/contact","https://developer.github.com","https://training.github.com","https://github.com/blog","https://github.com/about"],"links":["https://github.com/","https://help.github.com/articles/which-remote-url-should-i-use","https://github.com/site/terms","https://github.com/site/privacy","https://github.com/security","https://status.github.com/","https://help.github.com","https://github.com","https://github.com/contact","https://developer.github.com","https://training.github.com","https://github.com/blog","https://github.com/about"],"level":"info","message":"completed job:  rJp16Oms-","timestamp":"2017-09-23T06:19:28.679Z"}
+{"level":"info","message":"Job processing :  r1QdVvXiW","timestamp":"2017-09-23T06:19:51.788Z"}
+{"level":"info","message":"Url content size limit set to :  1.0 MB","timestamp":"2017-09-23T06:19:51.788Z"}
+{"level":"info","message":"Resource lenght is 56.5 KB","timestamp":"2017-09-23T06:20:00.045Z"}
+{"level":"info","message":"foundLinks 79","timestamp":"2017-09-23T06:20:00.133Z"}
+{"level":"info","message":"validLinks  13","timestamp":"2017-09-23T06:20:08.952Z"}
+{"url":"https://github.com/traceglMPL/tracegl","dataLength":"56.5 KB","validLinks":[],"links":null,"level":"info","message":"completed job:  r1QdVvXiW","timestamp":"2017-09-23T06:20:08.955Z"}
+{"level":"info","message":"Job processing :  S1MuTOmjZ","timestamp":"2017-09-23T06:21:30.130Z"}
+{"level":"info","message":"Url content size limit set to :  1.0 MB","timestamp":"2017-09-23T06:21:30.139Z"}
+{"level":"info","message":"Resource lenght is 19.8 KB","timestamp":"2017-09-23T06:21:32.786Z"}
+{"level":"info","message":"foundLinks 57","timestamp":"2017-09-23T06:21:32.852Z"}
+{"level":"info","message":"Job processing :  S1MuTOmjZ","timestamp":"2017-09-23T06:35:22.814Z"}
+{"level":"info","message":"Url content size limit set to :  1.0 MB","timestamp":"2017-09-23T06:35:22.815Z"}
+{"level":"info","message":"Resource lenght is 19.8 KB","timestamp":"2017-09-23T06:35:27.926Z"}
+{"level":"info","message":"foundLinks 57","timestamp":"2017-09-23T06:35:27.993Z"}
