@@ -18,9 +18,9 @@ const logger = new winston.Logger({
     new winston.transports.File({ filename: "logfile.log" })
   ]
 });
-//logger.remove(winston.transports.Console);
+logger.remove(winston.transports.Console);
 
-//logger.level = "debug";
+logger.level = "debug";
 
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -93,20 +93,17 @@ if (cluster.isMaster && numCPUs > 1) {
   require("./api/mongo")(app);
 }
 
-// const html2json = require('html2json').html2json;
-// const json2html = require('html2json').json2html;
-const himalaya = require("himalaya");
-const toHTML = require("himalaya/translate").toHTML;
-const htmlparser = require("htmlparser2");
-const cheerio = require("cheerio");
 const Job = require("./models/Job");
-const uniqueLinks = [];
+
+app.get("/test", function(req, res) {
+  res.send("hello world");
+});
 
 const htmlParseQueue = new Queue("html_parsing", "redis://127.0.0.1:6379");
 const resultQueue = new Queue("Result Queue");
 
 htmlParseQueue.on("completed", (job, result) => {
-  logger.log("info", "completed job: ", job.id, result);
+  //logger.log("info", "completed job: ", job.id, result);
   resultQueue.add({ status: "completed", job: job, result: result });
 });
 
@@ -120,53 +117,6 @@ htmlParseQueue.process((job, done) => {
   process(job, done);
 });
 
-/* function parseHtml(html, done) {
-    let parsed;
-    try {
-      parsed = himalaya.parse(html);
-    } catch (ex) {
-      done(new Error(ex));
-      // return null; // Oh well, but whatever...
-    }
-
-    return parsed; // Could be undefined!
-  }
-*/
-
-function parseHtml(data) {
-  const tags = [];
-  const tagsCount = {};
-  const tagsWithCount = [];
-
-  const handler = new htmlparser.DomHandler((error, dom) => {
-    logger.log("info", dom);
-  });
-
-  const parsedData = new htmlparser.Parser(
-    {
-      onopentag(name, attribs) {
-        if (tags.indexOf(name) === -1) {
-          tags.push(name);
-          tagsCount[name] = 1;
-        } else {
-          tagsCount[name]++;
-        }
-      },
-      onend() {
-        for (let i = 1; i < tags.length; i++) {
-          tagsWithCount.push({ name: tags[i], count: tagsCount[tags[i]] });
-        }
-      }
-    },
-    { decodeEntities: true }
-  );
-
-  parsedData.write(data);
-  parsedData.end();
-  //   logger.log("info",tagsWithCount);
-  return tagsWithCount;
-}
-
 function bytesToSize(bytes) {
   const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
   if (bytes === 0) return "n/a";
@@ -175,115 +125,14 @@ function bytesToSize(bytes) {
   return `${(bytes / 1024 ** i).toFixed(1)} ${sizes[i]}`;
 }
 
-let allUniqueLinks = [];
-
 function process(job, done) {
-  const maxSize = 1048576;
-  logger.log("info", "Url content size limit set to : ", bytesToSize(maxSize));
-
   async.waterfall(
     [
-      //Task 1
       callback => {
-        request(
-          {
-            url: job.data.url,
-            method: "HEAD"
-          },
-          (err, headRes) => {
-            const size = headRes.headers["content-length"];
-            if (size > maxSize) {
-              logger.log("info", `Resource size exceeds limit (${size})`);
-              //done(new Error("Resource stream exceeded limit"));
-              callback(new Error("Resource stream exceeded limit"));
-            } else {
-              callback(null, job.data.url);
-            }
-          }
-        );
-      },
-      // Task 2
-      (url, callback) => {
-        let contentSize = 0;
-        let body = "";
-
-        const res = request({ url: url });
-
-        res.on("data", data => {
-          contentSize += data.length;
-
-          if (contentSize > maxSize) {
-            logger.log(
-              "info",
-              `Resource stream exceeded limit (${contentSize})`
-            );
-            callback(new Error("Resource stream exceeded limit"));
-            res.abort(); // Abort the response (close and cleanup the stream)
-          }
-          body += data;
-        });
-        res.on("end", () => {
-          // const l = (body.length / 1024).toFixed(3);
-          const l = bytesToSize(body.length);
-          logger.log("info", "Resource lenght is", l);
-          //let parsedBody;
-          let jobResult = {
-            url: url,
-            dataLength: l,
-            validLinks: null,
-            links: null
-          };
-          let foundLinks = [];
-          /*try {
-          parsedBody = parseHtml(body);
-           logger.log("info","htmlParseQueue parsedBody :", parsedBody);
-          return done(null, parsedBody);
-        } catch (e) {
-          done(new Error(e));
-        }*/
-          $ = cheerio.load(body);
-
-          let links = $("a"); //jquery get all hyperlinks
-          $(links).each(function(i, link) {
-            //logger.log("info",$(link).text() + ":\n  " + $(link).attr("href"));
-            //logger.log("info",$(link).attr("href"));
-            foundLinks.push($(link).attr("href"));
-          });
-          logger.log("info", "foundLinks", foundLinks.length);
-
-          async.filter(foundLinks, urlExists, function(err, validLinks) {
-            // TODO handle no valid links case
-            jobResult.validLinks = validLinks.map(x => x);
-            logger.log("info", "validLinks ", jobResult.validLinks.length);
-            if (!err) return callback(null, jobResult);
-            done(new Error(err));
-          });
-        });
-
-        res.on("error", error => {
-          done(new Error(error));
-        });
-        res.end();
-      },
-      // Task 3
-      (jobResult, callback) => {
-        let validLinks = jobResult.validLinks;
-        if (allUniqueLinks.length === 0) {
-          allUniqueLinks = validLinks.map(x => x);
-        } else {
-          let dataSize = allUniqueLinks.length;
-          let dataSize1 = validLinks.length;
-          for (let i = 0; i < dataSize; i++) {
-            for (let j = 0; j < dataSize1; j++) {
-              if (validLinks.length === 0) return callback(null, jobResult);
-              if (allUniqueLinks[i] === validLinks[j])
-                validLinks.splice(validLinks[j], 1);
-            }
-          }
-        }
-        logger.log("info", "valid links after for loop", validLinks.length);
-        jobResult.links = validLinks.map(x => x);
-        callback(null, jobResult);
+        let jobResult = {
+          testRunTime: null
+        };
+        callback(null, arrayTest(jobResult));
       }
     ],
     (err, jobResult) => {
@@ -302,8 +151,8 @@ function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function arrayTest() {
-  let data = new Array(32776); //768);
+function arrayTest(jobResult) {
+  let data = new Array(327); //768);
   let dataSize = data.length;
 
   for (let c = 0; c < dataSize; c++) data[c] = getRandomInt(0, 256);
@@ -324,11 +173,11 @@ function arrayTest() {
     }
   }
   let end = new Date();
-  logger.log(
-    "info",
-    "Operation took " + (end.getTime() - start.getTime()) + " msec"
-  );
-  logger.log("info", sum);
+  let testRunTime = end.getTime() - start.getTime();
+  jobResult.testRunTime = testRunTime;
+  logger.log("info", "Operation took " + testRunTime + " msec");
+  //logger.log("info", sum);
+  return jobResult;
 }
 
 //arrayTest();
